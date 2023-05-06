@@ -10,5 +10,8 @@
     "@prisma/client": "^4.13.0",
     "bson-objectid": "^2.0.4",
     "prisma": "^4.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.1.0"
   }
 }
