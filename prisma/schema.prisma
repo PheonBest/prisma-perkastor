@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native","linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+// Necessary for Next auth
+model Account {
+    id                String  @id @default(cuid()) @map("_id") @db.ObjectId
+    userId            String @db.ObjectId
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? // @db.Text
+    access_token      String? // @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? // @db.Text
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid()) @map("_id") @db.ObjectId
+    sessionToken String   @unique
+    userId       String   @db.ObjectId
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+    id            String    @id @default(cuid()) @map("_id") @db.ObjectId
+    firstName     String?
+    lastName      String?
+    fullName      String?
+    username      String?   @unique
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    active        Boolean   @default(true)
+    provider      String?
+    role          String    @default("user")
+
+    userType      UserType? @relation(fields: [userTypeId], references: [name], onDelete: Cascade)
+    userTypeId    String?   @db.ObjectId
+
+    accounts      Account[]
+    sessions      Session[]
+    facts         Fact[]
+}
+
+model UserType {
+    name      String    @id @default(cuid()) @map("_id") @db.ObjectId
+    users     User[]
+}
+
+model VerificationToken {
+    identifier String  @id @map("_id") @db.ObjectId
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+model Tag {
+    id        String   @id @default(cuid()) @map("_id") @db.ObjectId
+    name      String   @unique
+    hexColor  String
+
+    //tags  FactTags[]
+}
+
+model FactTags {
+    id     String      @id @default(cuid()) @map("_id") @db.ObjectId
+    factId String      @db.ObjectId
+    tagId  String      @db.ObjectId
+
+    //fact   Fact @relation(fields: [factId], references: [id], onDelete: Cascade)
+    //tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+}
+model Fact {
+    id        String   @id @default(cuid()) @map("_id") @db.ObjectId
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    title     String
+    shortDesc String?
+    content   String
+
+    from      DateTime?
+    until     DateTime?
+
+    bannerImg String?
+    verified  Boolean  @default(false)
+
+    video     String[] // can be initialized to an empty array
+    audio     String[] // can be initialized to an empty array
+
+    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId  String   @db.ObjectId
+
+    //tags  FactTags[]
+    location    Location @relation("FactLocation", fields: [locationId], references: [id])
+    locationId  String   @db.ObjectId
+    personsInvolved FactHistoricalPerson[]
+}
+
+
+model Location {
+    id              String   @id @default(cuid()) @map("_id") @db.ObjectId
+
+    geometry        String // "Point"
+    coordinates     Float[] // [longitude, latitude]
+    area            Float // in square kilometers
+    type            String // "ville", "pays", "region", "departement", "commune", "lieu-dit", "autre
+    name            String // "Paris", "France", "Ile-de-France", "Seine"
+    facts           Fact[] @relation("FactLocation")
+
+    // location is unique based on its coordinates and name
+    @@unique([coordinates, name])
+}
+
+model FactHistoricalPerson {
+    id     String           @id @default(cuid()) @map("_id") @db.ObjectId
+    factId String           @db.ObjectId
+    historicalPersonId  String      @db.ObjectId
+
+    fact   Fact         @relation(fields: [factId], references: [id], onDelete: Cascade)
+    historicalPerson    HistoricalPerson  @relation(fields: [historicalPersonId], references: [id], onDelete: Cascade)
+}
+
+model HistoricalPerson {
+    id        String   @id @default(cuid()) @map("_id") @db.ObjectId
+    name      String   @unique
+    birthDate DateTime?
+    deathDate DateTime?
+    image     String?
+    shortDesc String?
+    content   String?
+
+    FactHistoricalPerson FactHistoricalPerson[]
+}

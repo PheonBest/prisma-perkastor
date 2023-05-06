@@ -1,0 +1,14 @@
+{
+  "name": "prisma-playground",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "npx ts-node index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.13.0",
+    "bson-objectid": "^2.0.4",
+    "prisma": "^4.13.0"
+  }
+}
