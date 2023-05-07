@@ -1,42 +1,92 @@
 import { PrismaClient } from '@prisma/client';
-import ObjectID from "bson-objectid"
-
+import ObjectID from 'bson-objectid';
 import fs from 'fs';
 
-//read data file
-const data = require('./data.json');
-interface LocationData {
-  geometry: string;
-  coordinates: number[];
-  area: number;
-  type: string;
+// Lire le fichier de données
+const data = require('./data/persons_prisma.json');
+
+interface PersonData {
   name: string;
+  birthDate: string;
+  deathDate: string;
+  shortDesc: string;
+  content: string;
+  image: string;
   dataId: string;
+}
+
+interface PersonToInsert {
+  id: string;
+  name: string;
+  birthDate: Date;
+  deathDate: Date;
+  shortDesc: string;
+  content: string;
+  image: string;
 }
 
 const client = new PrismaClient();
 
 const main = async () => {
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === 'object') { // Vérifiez que `value` est un objet
-      const locationData: LocationData = value as LocationData;
-      const location = await client.location.create({
-        data: {
-          id: ObjectID().toHexString(),
-          geometry: 'Point',
-          coordinates: locationData.coordinates,
-          type: locationData.type,
-          name: locationData.name,
-          area: locationData.area,
-        },
-      });
-      data[key].id = location.id;
-      console.log(location);
-    }
-  }
-  // save data file
-  fs.writeFileSync('./data_inserted.json', JSON.stringify(data, null, 2));
+  const uniquePersons = new Map<string, PersonToInsert>();
 
+  for (const [key, value] of Object.entries<PersonData>(data)) {
+    const id = ObjectID().toHexString();
+    var birthDate : Date = new Date(value.birthDate)
+    var deathDate : Date = new Date(value.deathDate)
+    
+    uniquePersons.set(key, {
+      id: id,
+      name: value.name,
+      birthDate: birthDate,
+      deathDate: deathDate,
+      shortDesc: value.shortDesc,
+      content: value.content,
+      image: value.image,
+
+    });
+    data[key].id = id;
+    
+  }
+
+  try {
+    await client.historicalPerson.createMany({
+      data: Array.from(uniquePersons.values()),
+    });
+  } catch (error) {
+    console.error('Error inserting data:', error);
+  }
+
+  // Enregistrer le fichier de données
+  fs.writeFileSync('./historal_persons_inserted.json', JSON.stringify(data, null, 2));
 };
 
 main();
+/*
+fact = await prisma.fact.create({
+        "data": {
+            "title": "Napoléon envahit la Russie",
+            "shortDesc": "En 1812, Napoléon envahit la Russie avec sa Grande Armée.",
+            "content": "L'invasion de la Russie par Napoléon en 1812 a marqué un tournant...",
+            "from": datetime(1812, 6, 24),
+            "until": datetime(1812, 12, 14),
+            "banne
+            rImg": "https://example.com/napoleon_invasion.jpg",
+            "verified": True,
+            "video": [],
+            "audio": [],
+            "author": {
+                "connect": {"id": "your_author_id"}  # Remplacez par un ID utilisateur existant
+            },
+            "location": {
+                "connect": {"id": location.id}
+            },
+            "personsInvolved": {
+                "create": {
+                    "historicalPerson": {
+                        "connect": {"id": historical_person.id}
+                    }
+                }
+            }
+        }
+        */

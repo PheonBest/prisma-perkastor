@@ -142,7 +142,7 @@ model Location {
     facts           Fact[] @relation("FactLocation")
 
     // location is unique based on its coordinates and name
-    @@unique([coordinates, name])
+    //@@unique([coordinates, name])
     @@map("locations")
 }
 
